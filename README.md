@@ -2,6 +2,8 @@
 
 Generate [Proof of Agent](https://minepoa.com) (PoA) self-custody key pairs in a single static HTML file. It makes **no network requests**, works from `file://` and with the network turned off, and never stores or logs a key.
 
+A separate page, [`check.html`](check.html), shows the **live balance and transaction status** of any `poa1` address. It needs an internet connection, is read-only, and never sees a key. The key generator itself is unchanged and still makes no network requests.
+
 **Use it:** download [`index.html`](index.html) (Raw → Save as), turn off your network, and open the file in any modern browser.
 A hosted copy is at **https://maximusmaximus.github.io/poa-keygen/**, but the safest way is a saved copy opened offline. A hosted page can change, and a file you've checked can't.
 
@@ -20,6 +22,32 @@ A hosted copy is at **https://maximusmaximus.github.io/poa-keygen/**, but the sa
   ```
   If the Clipboard API isn't available, the page falls back to `execCommand('copy')`. If that's blocked too, it opens a dialog with the text selected so you can copy it by hand.
 - **Generate new pair** and **Download wallet.json**. The download uses the same format the official client's `init-wallet` writes (`{version, address, pubkey, privkey, created, invited_by}`), so you can pass its folder to `node poa.mjs … --wallet DIR`.
+
+## Live balance checker (`check.html`)
+
+**Use it:** press **Check live balance ↗** under the address, or open **https://maximusmaximus.github.io/poa-keygen/check.html** and paste any `poa1…` address. The address is passed in the URL fragment (`check.html#poa1…`), which browsers don't send to the web server.
+
+| Desktop (1280 px) | Phone (iPhone 13) |
+|---|---|
+| ![Balance checker on desktop](docs/check-desktop.png) | ![Balance checker on a phone](docs/check-mobile.png) |
+
+What it shows:
+
+- **Spendable now**: the final balance minus pending outgoing transfers. Pending incoming transfers aren't counted until they're final.
+- **Current balance**: the checkpoint balance plus final transfers since the checkpoint.
+- **Pending in** and **Pending out**, shown separately.
+- **Checkpoint balance** and its height, marked as lagging. This is the explorer's `balance` field, and it can be hours old.
+- **Last transaction** time, and every transaction with a status badge: **Pending · N/5**, **Final · N confirmations**, or **Final · checkpoint h…**.
+- **Track a transaction**: paste a txid to follow it from sent to final, even before it shows in the address history. It shows **Not found**, **Included**, **Pending**, **Final** or **Failed**.
+- It refreshes every 15 s while the tab is visible, shows "updated N s ago", and has Pause and Refresh buttons.
+
+How the balance is worked out: `GET /api/explorer/address/<addr>` returns `balance` as of the last signed checkpoint, plus the address's transactions. For each transaction, `GET /api/explorer/tx/<id>` says whether the checkpoint covers it (`checkpointed`). The page adds final incoming and subtracts final and pending outgoing transfers that the checkpoint doesn't cover yet. All amounts use integer micro-POA, so there's no floating-point rounding.
+
+Internet and safety:
+
+- **It needs an internet connection.** The page says so up front. When the browser goes offline or can't reach minepoa.com, it says "You're offline" and hides the numbers rather than showing old ones. It recovers by itself when you reconnect. When the explorer is re-deriving history (`503 origin busy`, `not in segments`), it shows "The ledger is catching up" and retries.
+- **It's read-only and keyless.** It only makes `GET` requests, and its Content-Security-Policy allows connections to `https://minepoa.com` only (`connect-src https://minepoa.com`). If you paste something that looks like a private key, it's cleared at once and never sent.
+- **Limits.** The public explorer doesn't list mining rewards credited after the checkpoint, or reward vesting. So a mining account can hold a little more than shown, and unvested rewards can't be sent yet. The only definitive "can I send this?" check is a signed dry run with your own client. This page never asks for a key, so it can't do that.
 
 ## Key format (and how it was established)
 
@@ -43,7 +71,7 @@ This is a **self-custody** key. It isn't a hosted API key (`pk_…`), which the 
 
 ### Verify it yourself
 
-- Read `index.html`. It's one file. Search it for `http`: apart from the `http-equiv` attribute, the only hit is the SVG namespace inside the `data:` favicon. Nothing is loaded from a URL.
+- Read `index.html`. It's one file. Search it for `http`: apart from the `http-equiv` attribute, the hits are the SVG namespace inside the `data:` favicon and the hosted checker link that a saved copy opens when you press **Check live balance**. Nothing is loaded from a URL.
 - Open DevTools → Network, generate a few pairs, and confirm there are 0 requests.
 - Run `node scripts/csp.mjs --check` to recompute the CSP hashes from the file.
 - Compare `sha256sum index.html` with the checksum printed by the CI run for the commit you downloaded.
@@ -76,6 +104,7 @@ npm test            # unit + e2e
 - 500 random seeds compared with Node/OpenSSL ed25519 using the official encoding
 - **Live cross-check**: downloads the current `minepoa.com/client/poa.mjs` and checks 25 of its `genKeypair()` outputs. This is skipped if the site is unreachable, or you can point it at a local copy with `POA_OFFICIAL_CLIENT=path`.
 - The CSP meta is current, with no unsafe sources, external URLs, network or storage APIs, or `console`.
+- `check.html`: its CSP allows `https://minepoa.com` only, it makes `GET` requests only, and it never handles keys. The balance derivation (`<script id="poa-balance-core">`) is checked for a lagging checkpoint, outgoing transfers after the checkpoint, pending incoming and outgoing, checkpoint-covered transfers not being double counted, "not in segments" fallback, self-transfers, private-key detection, request caching, and the busy, offline and invalid errors. A live read-only cross-check against minepoa.com runs too; set `POA_LIVE=0` to skip it.
 
 **E2E smoke** (Playwright). These run on Chromium, Firefox and WebKit desktop, and on emulated Pixel 7 and iPhone 13 (portrait and landscape) and iPhone SE:
 - **Any request other than the page itself fails the test.** The page also runs with every request aborted and the browser offline, and from `file://` while offline. There are no CSP violations and no console errors.
@@ -83,6 +112,7 @@ npm test            # unit + e2e
 - The clipboard contents are correct for all 3 copy buttons, read back with a real paste and, in Chromium, with `navigator.clipboard.readText()`. Both fallbacks are tested: execCommand, and the manual dialog.
 - The `wallet.json` download is in the official format and verifies.
 - Every generated pair is checked in Node: signing with the private key verifies under the address.
+- **Balance checker** (mocked minepoa.com): lagging checkpoint, pending and final badges, a pending transfer turning final on the next 15 s refresh, the offline state and recovery, the catching-up state, a pasted private key being refused without any request, tracking a txid, the generator's link carrying the new address, and no horizontal overflow.
 - **Viewports**: 320×568, 375×667, 414×896, 390×844 (portrait), 844×390 and 568×320 (landscape), 768×1024, 1024×768, 1280×800 and 1920×1080 on all 3 engines, plus each device's own viewport. The tests check for no horizontal overflow and no clipped fields, that every control is on screen, and that tap targets are at least 44 px. Screenshots are saved to `screenshots/<project>/` and uploaded as a CI artifact.
 
 CI (`.github/workflows/ci.yml`) runs all of this on every push.
