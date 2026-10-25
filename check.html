@@ -1,0 +1,622 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-AO55ayhpRtpTJ5euzXdPNZZ1SLBV59Fl1+jnD3VWSKU=' 'sha256-kRwJ6A8Fv0DIQaJ2ciwEtad7UNe6bz6PBTiIIcXXH7A='; style-src 'sha256-HH51JxwJly3/XQtpybHMTXrv12Ot+Qf5pgQP9mSCqUo='; img-src data:; connect-src https://minepoa.com; font-src 'none'; media-src 'none'; object-src 'none'; frame-src 'none'; worker-src 'none'; manifest-src 'none'; form-action 'none'; base-uri 'none'">
+<meta name="referrer" content="no-referrer">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
+<meta name="description" content="Live Proof of Agent (PoA) balance and transaction status for any poa1 address. Read-only: needs no key.">
+<title>PoA Balance Checker (live)</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cpath d='M16 2 30 26H2z' fill='%237c5cff'/%3E%3C/svg%3E">
+<style>
+:root{
+  --bg:#f4f5fb;--bg2:#e9ebf7;--card:#ffffff;--ink:#14162b;--muted:#565b7a;--line:#d6d9ea;
+  --accent:#5b3df5;--accent-ink:#ffffff;--accent-soft:#ece8ff;--ok:#0f7b4a;--ok-soft:#e3f6ec;
+  --warn:#8a4b00;--warn-soft:#fff3dd;--bad:#a3122b;--bad-soft:#fde7eb;--info:#1d4ed8;--info-soft:#e4ecff;
+  --field:#f7f8fd;--shadow:0 10px 30px rgba(20,22,43,.08);
+  --radius:16px;--mono:ui-monospace,SFMono-Regular,Menlo,Consolas,"Liberation Mono",monospace;
+  --sans:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+}
+@media (prefers-color-scheme:dark){:root{
+  --bg:#0d0e1a;--bg2:#141629;--card:#171a30;--ink:#eef0ff;--muted:#a3a8c9;--line:#2b2f52;
+  --accent:#8f7bff;--accent-ink:#0d0e1a;--accent-soft:#25214a;--ok:#5be3a0;--ok-soft:#10301f;
+  --warn:#ffc46b;--warn-soft:#33260f;--bad:#ff8a9b;--bad-soft:#3a1720;--info:#9db8ff;--info-soft:#172447;
+  --field:#10122a;--shadow:0 10px 30px rgba(0,0,0,.35);
+}}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
+body{margin:0;min-height:100vh;font-family:var(--sans);color:var(--ink);line-height:1.5;
+  background:radial-gradient(1200px 600px at 10% -10%,var(--accent-soft),transparent 60%),linear-gradient(var(--bg),var(--bg2));
+  padding:max(16px,env(safe-area-inset-top)) max(16px,env(safe-area-inset-right)) max(24px,env(safe-area-inset-bottom)) max(16px,env(safe-area-inset-left))}
+.wrap{max-width:860px;margin:0 auto}
+header{display:flex;align-items:center;gap:12px;margin:8px 0 18px}
+.logo{flex:none;width:40px;height:40px;border-radius:12px;background:var(--accent);display:grid;place-items:center;color:var(--accent-ink);font-size:20px}
+h1{font-size:clamp(1.25rem,1rem + 1.6vw,1.8rem);line-height:1.2;margin:0}
+h2{font-size:1.05rem;margin:0}
+.sub{margin:2px 0 0;color:var(--muted);font-size:.95rem}
+.sub a,.back{color:var(--accent);font-weight:650}
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:clamp(16px,3vw,28px);margin-bottom:16px}
+.notice{display:flex;gap:10px;align-items:flex-start;border-radius:12px;padding:12px 14px;font-size:.92rem;margin:0 0 16px;border-left:4px solid var(--info);background:var(--info-soft)}
+.notice.offline{border-left-color:var(--bad);background:var(--bad-soft)}
+.notice.busy{border-left-color:var(--warn);background:var(--warn-soft)}
+.notice b{display:block}
+.notice .ic{flex:none;font-size:1.1rem;line-height:1.3}
+.label{display:block;font-weight:700;font-size:.95rem;margin-bottom:6px}
+.row{display:flex;gap:10px;flex-wrap:wrap}
+.row .input{flex:1 1 320px;min-width:0}
+.input{width:100%;min-height:48px;padding:12px 14px;border:1px solid var(--line);border-radius:12px;background:var(--field);color:var(--ink);font-family:var(--mono);font-size:clamp(.82rem,.75rem + .35vw,.98rem)}
+.input[aria-invalid="true"]{border-color:var(--bad)}
+.btn{appearance:none;font:inherit;font-weight:650;font-size:.95rem;min-height:48px;padding:10px 18px;border-radius:12px;cursor:pointer;
+  border:1px solid var(--line);background:var(--card);color:var(--ink);display:inline-flex;align-items:center;justify-content:center;gap:8px}
+.btn:hover{border-color:var(--accent)}
+.btn:focus-visible,.input:focus-visible,a:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.btn.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.btn.small{min-height:36px;padding:6px 12px;font-size:.85rem}
+.btn[disabled]{opacity:.55;cursor:not-allowed}
+.hint{color:var(--muted);font-size:.82rem;margin:6px 0 0}
+.err{color:var(--bad);font-size:.88rem;margin:8px 0 0;font-weight:600}
+.err:empty{display:none}
+.live{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:14px}
+.live-l{display:flex;align-items:center;gap:8px;font-size:.88rem;color:var(--muted)}
+.dot{width:9px;height:9px;border-radius:50%;background:var(--muted)}
+.dot.on{background:var(--ok);box-shadow:0 0 0 0 var(--ok);animation:pulse 2s infinite}
+.dot.off{background:var(--bad)}
+.dot.wait{background:var(--warn)}
+@keyframes pulse{0%{box-shadow:0 0 0 0 rgba(15,123,74,.45)}70%{box-shadow:0 0 0 8px rgba(15,123,74,0)}100%{box-shadow:0 0 0 0 rgba(15,123,74,0)}}
+.addr{font-family:var(--mono);font-size:.85rem;overflow-wrap:anywhere;color:var(--muted);margin:0 0 14px}
+.grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.stat{border:1px solid var(--line);border-radius:14px;padding:14px;background:var(--field);min-width:0}
+.stat.hero{grid-column:span 2;background:var(--accent-soft);border-color:transparent}
+.stat .k{font-size:.8rem;color:var(--muted);font-weight:650;text-transform:uppercase;letter-spacing:.04em}
+.stat .v{font-family:var(--mono);font-weight:700;font-size:clamp(1.05rem,.9rem + .8vw,1.5rem);overflow-wrap:anywhere;margin-top:2px}
+.stat.hero .v{font-size:clamp(1.4rem,1.1rem + 1.6vw,2.2rem);color:var(--accent)}
+.stat .d{font-size:.8rem;color:var(--muted);margin-top:2px}
+.stat.lag{border-style:dashed}
+.v.in{color:var(--ok)} .v.out{color:var(--warn)}
+.txhead{display:flex;justify-content:space-between;align-items:baseline;gap:8px;flex-wrap:wrap;margin:22px 0 8px}
+.txs{list-style:none;margin:0;padding:0;border:1px solid var(--line);border-radius:14px;overflow:hidden}
+.tx{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:4px 12px;align-items:center;padding:12px 14px;border-top:1px solid var(--line)}
+.tx:first-child{border-top:0}
+.tx .dir{width:34px;height:34px;border-radius:10px;display:grid;place-items:center;font-weight:800;background:var(--field)}
+.tx .dir.in{color:var(--ok);background:var(--ok-soft)} .tx .dir.out{color:var(--warn);background:var(--warn-soft)}
+.tx .main{min-width:0}
+.tx .t1{font-weight:650;font-size:.92rem;overflow-wrap:anywhere}
+.tx .t2{font-size:.8rem;color:var(--muted);overflow-wrap:anywhere}
+.tx .amt{font-family:var(--mono);font-weight:700;text-align:right;white-space:nowrap}
+.tx .amt.in{color:var(--ok)} .tx .amt.out{color:var(--warn)}
+.tx .side{display:flex;flex-direction:column;align-items:flex-end;gap:4px}
+.tx a{color:inherit}
+.badge{display:inline-flex;align-items:center;gap:5px;border-radius:999px;padding:2px 10px;font-size:.75rem;font-weight:700;white-space:nowrap}
+.badge.final{color:var(--ok);background:var(--ok-soft)}
+.badge.pending{color:var(--warn);background:var(--warn-soft)}
+.badge.included{color:var(--info);background:var(--info-soft)}
+.badge.failed,.badge.notfound{color:var(--bad);background:var(--bad-soft)}
+.empty{padding:16px;color:var(--muted);text-align:center;font-size:.9rem}
+.flags{margin:12px 0 0;padding:0;list-style:none;display:grid;gap:6px}
+.flags li{font-size:.85rem;color:var(--muted)}
+.watch-out{margin-top:12px}
+.watchbox{border:1px solid var(--line);border-radius:14px}
+.stat .v.sm{font-size:1rem}
+.stat.wide{grid-column:span 2}
+.hint.lead{margin:4px 0 10px}
+details{font-size:.92rem;color:var(--muted)}
+summary{cursor:pointer;font-weight:650;color:var(--ink);min-height:32px}
+details ul{padding-left:20px;margin:8px 0 0}
+code{font-family:var(--mono);font-size:.9em;overflow-wrap:anywhere}
+footer{color:var(--muted);font-size:.8rem;text-align:center;margin-top:8px}
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+[hidden]{display:none!important}
+@media (max-width:640px){.grid{grid-template-columns:repeat(2,minmax(0,1fr))}.stat.hero,.stat.wide{grid-column:1/-1}
+  .tx{grid-template-columns:auto minmax(0,1fr)}.tx .side{grid-column:2;flex-direction:row;justify-content:space-between;align-items:center}}
+@media (max-width:560px){.row .btn{width:100%}}
+@media (max-width:380px){.grid{grid-template-columns:1fr}.stat.hero,.stat.wide{grid-column:auto}}
+@media (prefers-reduced-motion:reduce){.dot.on{animation:none}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="logo" aria-hidden="true">▲</div>
+    <div>
+      <h1>PoA Balance Checker</h1>
+      <p class="sub">Live balance and transaction status for any <code>poa1</code> address. <a class="back" id="back" href="index.html">← Key generator</a></p>
+    </div>
+  </header>
+
+  <main class="card">
+    <p class="notice" id="net-notice" data-state="info" role="status" aria-live="polite">
+      <span class="ic" aria-hidden="true">🌐</span>
+      <span><b id="net-title">Needs an internet connection</b><span id="net-text">Live balances come from the public minepoa.com ledger, so this page has to be online. It sends only the public address. Key generation on the other page still works offline.</span></span>
+    </p>
+
+    <form id="form" novalidate autocomplete="off">
+      <label class="label" for="addr">Address</label>
+      <div class="row">
+        <input class="input" id="addr" name="addr" inputmode="text" spellcheck="false" autocapitalize="off" autocomplete="off" placeholder="poa1…" aria-describedby="addr-hint addr-err">
+        <button class="btn primary" id="go" type="submit">Check balance</button>
+      </div>
+      <p class="hint" id="addr-hint">Public address only. Never paste a private key here or anywhere else.</p>
+      <p class="err" id="addr-err" role="alert"></p>
+    </form>
+  </main>
+
+  <section class="card" id="result" hidden aria-labelledby="res-title">
+    <div class="live">
+      <h2 id="res-title">Balance</h2>
+      <div class="live-l"><span class="dot" id="dot" aria-hidden="true"></span><span id="updated" aria-live="off">—</span>
+        <button class="btn small" type="button" id="pause" aria-pressed="false">Pause</button>
+        <button class="btn small" type="button" id="refresh">Refresh</button></div>
+    </div>
+    <p class="addr" id="res-addr"></p>
+    <div class="grid">
+      <div class="stat hero"><div class="k">Spendable now</div><div class="v" id="v-spendable">—</div><div class="d">Final balance minus pending outgoing. Pending incoming isn't counted until it's final.</div></div>
+      <div class="stat"><div class="k">Current balance</div><div class="v" id="v-current">—</div><div class="d">Checkpoint + final transfers since</div></div>
+      <div class="stat"><div class="k">Pending in</div><div class="v in" id="v-pin">—</div><div class="d">Not final yet</div></div>
+      <div class="stat"><div class="k">Pending out</div><div class="v out" id="v-pout">—</div><div class="d">Not final yet</div></div>
+      <div class="stat lag"><div class="k">Checkpoint balance</div><div class="v" id="v-cp">—</div><div class="d" id="v-cp-d">Lags: as of the last signed checkpoint</div></div>
+      <div class="stat"><div class="k">Since checkpoint</div><div class="v sm" id="v-since">—</div><div class="d">Final in / final out</div></div>
+      <div class="stat wide"><div class="k">Last transaction</div><div class="v sm" id="v-last">—</div><div class="d" id="v-last-d"></div></div>
+    </div>
+    <ul class="flags" id="flags"></ul>
+
+    <div class="txhead"><h2>Transactions</h2><span class="hint" id="tx-count"></span></div>
+    <ul class="txs" id="txs" aria-live="polite"></ul>
+  </section>
+
+  <section class="card" aria-labelledby="w-title">
+    <h2 id="w-title">Track a transaction</h2>
+    <p class="hint lead">Paste a txid to follow it from sent to final, even before it appears in the address history.</p>
+    <form id="wform" novalidate autocomplete="off">
+      <div class="row">
+        <input class="input" id="wtx" spellcheck="false" autocapitalize="off" placeholder="64-character txid" aria-label="Transaction id" aria-describedby="w-err">
+        <button class="btn" type="submit" id="wgo">Track</button>
+      </div>
+      <p class="err" id="w-err" role="alert"></p>
+    </form>
+    <div class="watch-out" id="wout" aria-live="polite"></div>
+  </section>
+
+  <section class="card">
+    <details>
+      <summary>How the balance is worked out</summary>
+      <ul>
+        <li>The explorer's <code>balance</code> is the balance at the last signed checkpoint, which can be hours old. Transfers after it aren't in that number yet.</li>
+        <li>This page reads the address history, checks each transaction with <code>/api/explorer/tx/&lt;id&gt;</code>, and adds the ones the checkpoint doesn't cover yet: final incoming in, final and pending outgoing out.</li>
+        <li><b>Final</b> means 5 or more peer attestations, or covered by a 5/5-signed, chain-anchored checkpoint. <b>Pending</b> is on the ledger but not final yet. <b>Included</b> means the node accepted it into a block and it's waiting for attestations. <b>Not found</b> means the node has never seen that txid.</li>
+        <li>Mining rewards credited after the checkpoint, and reward vesting, aren't in the public history, so a mining account can hold slightly more than shown and may not be able to send unvested rewards yet. The only definitive "can I send this?" check is a signed dry run with your own client (<code>node poa.mjs send … --dry</code> or <code>POST /api/submit?dry=1</code>). This page never asks for a key, so it can't do that.</li>
+        <li>Updates every 15 seconds while this tab is visible. Requests go only to <code>https://minepoa.com</code>, enforced by this page's Content-Security-Policy. Nothing is stored.</li>
+      </ul>
+    </details>
+  </section>
+  <footer>Tessellate Army · open source · read-only, no keys</footer>
+</div>
+
+<script id="poa-balance-core">
+/* PoA live balance core. Pure JavaScript, no dependencies. The only I/O is the fetch function the
+   caller passes in, used for GET requests to the public minepoa.com explorer. It never sees a key.
+
+   Why this exists: GET /api/explorer/address/<addr> returns `balance` as of the last signed
+   checkpoint (balance_as_of.checkpoint_height), which can lag by hours. Transactions newer than the
+   checkpoint are listed in `txs` but are not in that balance yet. A tx is covered by the checkpoint
+   when /api/explorer/tx/<id> has `checkpointed`. So:
+     current   = checkpoint balance + final incoming - final outgoing  (txs not yet checkpointed)
+     spendable = current - pending outgoing (pending incoming is not counted until it is final) */
+(function (root) {
+  'use strict';
+  var B58 = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz';
+  var K = 5; // peer attestations for finality on minepoa
+
+  function b58dec(s) {
+    if (typeof s !== 'string' || !s.length) return null;
+    var n = 0n;
+    for (var i = 0; i < s.length; i++) { var v = B58.indexOf(s[i]); if (v < 0) return null; n = n * 58n + BigInt(v); }
+    var bytes = [];
+    while (n > 0n) { bytes.unshift(Number(n & 0xffn)); n >>= 8n; }
+    for (i = 0; i < s.length && s[i] === '1'; i++) bytes.unshift(0);
+    return new Uint8Array(bytes);
+  }
+  function isAddress(s) {
+    if (typeof s !== 'string' || s.slice(0, 4) !== 'poa1') return false;
+    var raw = b58dec(s.slice(4));
+    return !!raw && raw.length === 32;
+  }
+  // A bare base58 string that decodes to 32 or 64 bytes is almost certainly a private key (seed).
+  function looksLikePrivkey(s) {
+    if (typeof s !== 'string') return false;
+    s = s.trim();
+    if (!s || s.slice(0, 4) === 'poa1' || s.length < 40) return false;
+    var raw = b58dec(s);
+    return !!raw && (raw.length === 32 || raw.length === 64);
+  }
+
+  function toMicros(s) {
+    if (s === null || s === undefined || s === '') return null;
+    var m = String(s).trim().match(/^(-?)(\d+)(?:\.(\d{0,6}))?$/);
+    if (!m) return null;
+    var v = BigInt(m[2]) * 1000000n + BigInt(((m[3] || '') + '000000').slice(0, 6));
+    return m[1] ? -v : v;
+  }
+  function fromMicros(v) {
+    var neg = v < 0n; if (neg) v = -v;
+    var frac = String(v % 1000000n); while (frac.length < 6) frac = '0' + frac;
+    return (neg ? '-' : '') + String(v / 1000000n) + '.' + frac;
+  }
+
+  // Status of one tx. `detail` is the /api/explorer/tx/<id> body, or {error} if the read node
+  // could not serve it (it answers "not in segments" briefly while it re-derives).
+  function txStatus(row, detail) {
+    if (detail && detail.checkpointed) return { state: 'final', via: 'checkpoint', height: detail.checkpointed.height, atts: row.atts || 0, covered: true };
+    if (detail && detail.finality && detail.finality.via === 'checkpoint') return { state: 'final', via: 'checkpoint', height: detail.finality.height, atts: row.atts || 0, covered: true };
+    var src = detail && !detail.error ? detail : row;
+    var atts = Number(src.atts) || 0;
+    var stale = !!(detail && detail.error);
+    if (Number(src.final) === 1) return { state: 'final', via: 'attestations', atts: atts, covered: false, stale: stale };
+    return { state: 'pending', atts: atts, need: K, covered: false, stale: stale };
+  }
+
+  /* Pure derivation. addrResp = /api/explorer/address/<addr> body; details = {txid: detail}. */
+  function derive(address, addrResp, details) {
+    details = details || {};
+    var cp = toMicros(addrResp.balance);
+    if (cp === null) throw new Error('explorer returned no checkpoint balance');
+    var cpHeight = addrResp.balance_as_of && addrResp.balance_as_of.checkpoint_height != null ? addrResp.balance_as_of.checkpoint_height : addrResp.checkpoint_height;
+    var finalIn = 0n, finalOut = 0n, pendIn = 0n, pendOut = 0n, unknown = 0, catchingUp = false, lastTs = null;
+    var rows = (Array.isArray(addrResp.txs) ? addrResp.txs : []).slice().sort(function (a, b) { return (b.ts || 0) - (a.ts || 0); });
+    var txs = rows.map(function (r) {
+      var d = details[r.id];
+      var st = txStatus(r, d);
+      if (d === undefined) st.unchecked = true;
+      if (st.stale) catchingUp = true;
+      var amt = toMicros(r.amount);
+      var dir = 'other';
+      if (amt !== null && amt > 0n) {
+        if (r.from_addr === address && r.to_addr === address) dir = 'self';
+        else if (r.to_addr === address) dir = 'in';
+        else if (r.from_addr === address) dir = 'out';
+      }
+      if (r.ts && (lastTs === null || r.ts > lastTs)) lastTs = r.ts;
+      // Only txs the checkpoint does not cover change the balance. Unchecked rows are counted too
+      // (never assume coverage we could not confirm), and flagged.
+      if (!st.covered && (dir === 'in' || dir === 'out')) {
+        if (st.unchecked) unknown += 1;
+        if (dir === 'in') { if (st.state === 'final') finalIn += amt; else pendIn += amt; }
+        else { if (st.state === 'final') finalOut += amt; else pendOut += amt; }
+      }
+      return {
+        id: r.id, type: r.type, ts: r.ts || null, from: r.from_addr || '', to: r.to_addr || '', direction: dir,
+        amount: amt === null ? null : fromMicros(amt), memo: d && typeof d.memo === 'string' ? d.memo : null,
+        status: st, inCheckpoint: !!st.covered
+      };
+    });
+    var current = cp + finalIn - finalOut;
+    var spendable = current - pendOut; if (spendable < 0n) spendable = 0n;
+    return {
+      address: address,
+      checkpoint: { balance: fromMicros(cp), height: cpHeight == null ? null : cpHeight },
+      current: fromMicros(current),
+      spendable: fromMicros(spendable),
+      afterPending: fromMicros(current + pendIn - pendOut),
+      sinceCheckpoint: { finalIn: fromMicros(finalIn), finalOut: fromMicros(finalOut), pendingIn: fromMicros(pendIn), pendingOut: fromMicros(pendOut) },
+      pendingCount: txs.filter(function (t) { return t.status.state === 'pending'; }).length,
+      lastTxTs: lastTs,
+      catchingUp: catchingUp,
+      unverifiedCoverage: unknown,
+      asOf: addrResp.as_of || null,
+      txs: txs
+    };
+  }
+
+  function NetError(kind, message, extra) { var e = new Error(message); e.kind = kind; if (extra) for (var k in extra) e[k] = extra[k]; return e; }
+
+  async function getJson(fetchFn, url, timeoutMs) {
+    var ctl = typeof AbortController === 'function' ? new AbortController() : null;
+    var timer = ctl ? setTimeout(function () { ctl.abort(); }, timeoutMs || 12000) : 0;
+    var resp;
+    try { resp = await fetchFn(url, { method: 'GET', headers: { Accept: 'application/json' }, signal: ctl ? ctl.signal : undefined, credentials: 'omit', cache: 'no-store', referrerPolicy: 'no-referrer' }); }
+    catch (e) { throw NetError(e && e.name === 'AbortError' ? 'timeout' : 'network', 'Could not reach minepoa.com'); }
+    finally { if (timer) clearTimeout(timer); }
+    var body = null;
+    try { body = await resp.json(); } catch (e) { body = null; }
+    return { status: resp.status, ok: resp.ok, body: body };
+  }
+
+  function makeChecker(opts) {
+    opts = opts || {};
+    var fetchFn = opts.fetch, node = String(opts.node || 'https://minepoa.com').replace(/\/+$/, '');
+    var maxDetails = opts.maxDetails || 60, conc = opts.concurrency || 4, timeoutMs = opts.timeoutMs || 12000;
+    var covered = {}; // txid -> detail; checkpoint coverage is permanent, so these are never refetched
+
+    async function detailFor(id) {
+      if (covered[id]) return covered[id];
+      var r = await getJson(fetchFn, node + '/api/explorer/tx/' + encodeURIComponent(id), timeoutMs);
+      if (r.ok && r.body && !r.body.error) {
+        if (r.body.checkpointed || (r.body.finality && r.body.finality.via === 'checkpoint')) covered[id] = r.body;
+        return r.body;
+      }
+      return { error: (r.body && r.body.error) || ('HTTP ' + r.status) };
+    }
+
+    async function check(address) {
+      if (!isAddress(address)) throw NetError('invalid', 'Not a valid poa1 address');
+      var r = await getJson(fetchFn, node + '/api/explorer/address/' + encodeURIComponent(address) + '?sort=new', timeoutMs);
+      if (r.status === 503 || r.status === 429 || (r.body && /busy|segments|halted/i.test(String(r.body.error || '')))) {
+        throw NetError('busy', 'The ledger is catching up. Retrying shortly.', { retryAfter: (r.body && r.body.retry_after_seconds) || 15 });
+      }
+      if (!r.ok || !r.body || r.body.error || r.body.balance === undefined) throw NetError('bad', (r.body && r.body.error) || ('Explorer answered HTTP ' + r.status));
+      var rows = (r.body.txs || []).slice().sort(function (a, b) { return (b.ts || 0) - (a.ts || 0); });
+      var ids = [], details = {};
+      for (var i = 0; i < rows.length && ids.length < maxDetails; i++) ids.push(rows[i].id);
+      var idx = 0;
+      async function worker() { while (idx < ids.length) { var id = ids[idx++]; details[id] = await detailFor(id); } }
+      var ws = []; for (i = 0; i < Math.min(conc, ids.length); i++) ws.push(worker());
+      await Promise.all(ws);
+      var out = derive(address, r.body, details);
+      out.truncated = rows.length > ids.length;
+      return out;
+    }
+
+    // Track one txid (for example a transfer you just sent) even before it shows in the address list.
+    async function watchTx(txid) {
+      if (!/^[0-9a-f]{64}$/.test(String(txid || ''))) throw NetError('invalid', 'A txid is 64 hex characters');
+      var res = await Promise.all([
+        getJson(fetchFn, node + '/api/receipt/' + txid, timeoutMs),
+        getJson(fetchFn, node + '/api/explorer/tx/' + txid, timeoutMs)
+      ]);
+      var rc = res[0], ex = res[1];
+      var receipt = rc.ok && rc.body && !rc.body.error ? rc.body : null;
+      var detail = ex.ok && ex.body && !ex.body.error ? ex.body : null;
+      var rstat = receipt ? String(receipt.status || '').toLowerCase() : '';
+      var state;
+      if (detail) state = txStatus(detail, detail).state; // 'final' or 'pending'
+      else if (/reject|invalid|fail|drop|expire/.test(rstat)) state = 'failed';
+      else if (receipt) state = rstat === 'included' ? 'included' : 'pending';
+      else state = 'notfound';
+      return {
+        id: txid, state: state, receiptStatus: rstat || null, height: receipt && receipt.height != null ? receipt.height : null,
+        atts: detail ? Number(detail.atts) || 0 : null,
+        checkpointHeight: detail && detail.checkpointed ? detail.checkpointed.height : null,
+        type: detail ? detail.type : null, from: detail ? detail.from_addr : null, to: detail ? detail.to_addr : null,
+        amount: detail ? detail.amount : null, memo: detail && typeof detail.memo === 'string' ? detail.memo : null,
+        reason: !detail && !receipt ? ((rc.body && rc.body.error) || (ex.body && ex.body.error) || null) : null
+      };
+    }
+    return { check: check, watchTx: watchTx };
+  }
+
+  root.PoaBalance = Object.freeze({ K: K, b58dec: b58dec, isAddress: isAddress, looksLikePrivkey: looksLikePrivkey,
+    toMicros: toMicros, fromMicros: fromMicros, txStatus: txStatus, derive: derive, makeChecker: makeChecker });
+})(typeof globalThis !== 'undefined' ? globalThis : this);
+</script>
+<script id="poa-balance-ui">
+(function () {
+  'use strict';
+  var B = window.PoaBalance, NODE = 'https://minepoa.com', POLL_MS = 15000;
+  var $ = function (id) { return document.getElementById(id); };
+  var checker = B.makeChecker({ fetch: window.fetch.bind(window), node: NODE });
+  var addr = null, last = null, lastAt = 0, timer = 0, ticker = 0, paused = false, inflight = false, netState = 'info';
+  var watchId = null, watchTimer = 0;
+
+  function el(tag, cls, text) { var e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; }
+  function fmt(s) {
+    if (s == null) return '—';
+    var neg = s.charAt(0) === '-', p = (neg ? s.slice(1) : s).split('.');
+    return (neg ? '-' : '') + p[0].replace(/\B(?=(\d{3})+(?!\d))/g, ',') + '.' + (p[1] || '000000') + ' POA';
+  }
+  function short(a) { return a ? a.slice(0, 10) + '…' + a.slice(-4) : '—'; }
+  function when(ts) {
+    if (!ts) return '—';
+    var d = new Date(ts * 1000);
+    return d.toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', second: '2-digit', timeZoneName: 'short' });
+  }
+  function ago(sec) {
+    if (sec < 5) return 'just now'; if (sec < 60) return sec + ' s ago';
+    var m = Math.floor(sec / 60); if (m < 60) return m + ' min ago';
+    var h = Math.floor(m / 60); return h + ' h ago';
+  }
+
+  function setNet(state, title, text) {
+    netState = state;
+    var n = $('net-notice');
+    n.className = 'notice' + (state === 'offline' ? ' offline' : state === 'busy' ? ' busy' : '');
+    n.dataset.state = state;
+    n.querySelector('.ic').textContent = state === 'offline' ? '⚠️' : state === 'busy' ? '⏳' : state === 'live' ? '✅' : '🌐';
+    $('net-title').textContent = title; $('net-text').textContent = text;
+  }
+  function infoNotice() {
+    setNet('info', 'Needs an internet connection', 'Live balances come from the public minepoa.com ledger, so this page has to be online. It sends only the public address. Key generation on the other page still works offline.');
+  }
+  function offlineNotice() {
+    setNet('offline', "You're offline", "Balances can't be checked until you reconnect. Nothing is shown rather than old numbers. Key generation still works offline.");
+  }
+
+  function clearResult() { last = null; $('result').hidden = true; $('txs').textContent = ''; }
+
+  function badgeFor(st) {
+    var b = el('span', 'badge');
+    if (st.state === 'final') {
+      b.className += ' final';
+      b.textContent = st.via === 'checkpoint' ? '✓ Final · checkpoint h' + st.height : '✓ Final · ' + st.atts + ' confirmations';
+    } else if (st.state === 'pending') {
+      b.className += ' pending'; b.textContent = '⏳ Pending · ' + Math.min(st.atts, st.need || 5) + '/' + (st.need || 5);
+    } else if (st.state === 'included') { b.className += ' included'; b.textContent = '◔ Included'; }
+    else if (st.state === 'failed') { b.className += ' failed'; b.textContent = '✕ Failed'; }
+    else { b.className += ' notfound'; b.textContent = '? Not found'; }
+    return b;
+  }
+
+  function render(r) {
+    $('result').hidden = false;
+    $('res-addr').textContent = r.address;
+    $('v-spendable').textContent = fmt(r.spendable);
+    $('v-current').textContent = fmt(r.current);
+    $('v-pin').textContent = fmt(r.sinceCheckpoint.pendingIn);
+    $('v-pout').textContent = fmt(r.sinceCheckpoint.pendingOut);
+    $('v-cp').textContent = fmt(r.checkpoint.balance);
+    $('v-cp-d').textContent = 'Lags: as of checkpoint h' + (r.checkpoint.height == null ? '?' : r.checkpoint.height);
+    $('v-since').textContent = '+' + r.sinceCheckpoint.finalIn + ' / −' + r.sinceCheckpoint.finalOut;
+    $('v-last').textContent = r.lastTxTs ? when(r.lastTxTs) : 'None yet';
+    $('v-last-d').textContent = r.lastTxTs ? ago(Math.max(0, Math.round(Date.now() / 1000 - r.lastTxTs))) : 'No transactions on the ledger';
+
+    var flags = $('flags'); flags.textContent = '';
+    var notes = [];
+    if (r.pendingCount) notes.push('⏳ ' + r.pendingCount + ' pending transaction' + (r.pendingCount > 1 ? 's' : '') + '. Numbers update as attestations arrive.');
+    if (r.catchingUp) notes.push('⏳ The explorer is catching up on some transactions; their status may be a little behind. Retrying automatically.');
+    if (r.unverifiedCoverage) notes.push('ℹ️ ' + r.unverifiedCoverage + ' older transaction(s) weren\'t checked individually.');
+    if (r.truncated) notes.push('ℹ️ Long history: only the newest transactions were checked against the checkpoint.');
+    if (!r.txs.length) notes.push('ℹ️ No transactions yet. A new address shows up once it receives POA or joins.');
+    notes.forEach(function (t) { flags.appendChild(el('li', '', t)); });
+
+    var ul = $('txs'); ul.textContent = '';
+    $('tx-count').textContent = r.txs.length ? r.txs.length + ' shown, newest first' : '';
+    if (!r.txs.length) { ul.appendChild(el('li', 'empty', 'No transactions yet.')); return; }
+    r.txs.forEach(function (t) {
+      var li = el('li', 'tx'); li.dataset.state = t.status.state;
+      var sym = t.direction === 'in' ? '↓' : t.direction === 'out' ? '↑' : t.direction === 'self' ? '↺' : '•';
+      li.appendChild(el('div', 'dir ' + t.direction, sym));
+      var main = el('div', 'main');
+      var label = t.direction === 'in' ? 'Received from ' + short(t.from) : t.direction === 'out' ? 'Sent to ' + short(t.to) : t.direction === 'self' ? 'To self' : (t.type || 'activity');
+      main.appendChild(el('div', 't1', label));
+      var t2 = el('div', 't2');
+      var a = el('a', '', t.id.slice(0, 12) + '…'); a.href = NODE + '/api/explorer/tx/' + t.id; a.target = '_blank'; a.rel = 'noopener noreferrer';
+      t2.appendChild(a);
+      t2.appendChild(document.createTextNode(' · ' + when(t.ts) + (t.memo ? ' · ' + t.memo : '') + (t.inCheckpoint ? '' : ' · after checkpoint')));
+      main.appendChild(t2);
+      li.appendChild(main);
+      var side = el('div', 'side');
+      side.appendChild(el('div', 'amt ' + t.direction, t.amount == null ? '—' : (t.direction === 'in' ? '+' : t.direction === 'out' ? '−' : '') + fmt(t.amount)));
+      side.appendChild(badgeFor(t.status));
+      li.appendChild(side);
+      ul.appendChild(li);
+    });
+  }
+
+  function tick() {
+    var dot = $('dot'), up = $('updated');
+    if (netState === 'offline') { dot.className = 'dot off'; up.textContent = 'Offline'; return; }
+    if (!lastAt) { dot.className = 'dot wait'; up.textContent = 'Loading…'; return; }
+    var s = Math.round((Date.now() - lastAt) / 1000);
+    dot.className = 'dot ' + (paused ? '' : netState === 'busy' ? 'wait' : 'on');
+    up.textContent = (paused ? 'Paused · ' : netState === 'busy' ? 'Catching up · ' : 'Live · ') + 'updated ' + ago(s);
+  }
+  function schedule(ms) {
+    clearTimeout(timer);
+    if (!addr || paused || document.hidden) return;
+    timer = setTimeout(refresh, ms == null ? POLL_MS : ms);
+  }
+  async function refresh() {
+    if (!addr || inflight) return;
+    if (navigator.onLine === false) { offlineNotice(); clearResult(); lastAt = 0; tick(); return; }
+    inflight = true; $('refresh').disabled = true;
+    var want = addr;
+    try {
+      var r = await checker.check(want);
+      if (want !== addr) return;
+      last = r; lastAt = Date.now();
+      setNet('live', 'Live', 'Connected to minepoa.com. Balances refresh every 15 s while this tab is open.');
+      render(r);
+      schedule();
+    } catch (e) {
+      if (want !== addr) return;
+      if (e.kind === 'network' || e.kind === 'timeout') {
+        if (navigator.onLine === false) offlineNotice();
+        else setNet('offline', "Can't reach minepoa.com", 'Check your internet connection. Nothing is shown rather than old numbers. Retrying every 15 s.');
+        clearResult(); lastAt = 0;
+        schedule();
+      } else if (e.kind === 'busy') {
+        setNet('busy', 'The ledger is catching up', 'minepoa.com is re-deriving recent history. Retrying automatically' + (last ? '; the numbers below are from ' + ago(Math.round((Date.now() - lastAt) / 1000)) + '.' : '.'));
+        schedule(Math.min(60, Math.max(5, Number(e.retryAfter) || 15)) * 1000);
+      } else {
+        $('addr-err').textContent = e.message || 'Something went wrong.';
+        clearResult(); schedule();
+      }
+    } finally { inflight = false; $('refresh').disabled = false; tick(); }
+  }
+
+  function start(a) {
+    var input = $('addr'), err = $('addr-err');
+    a = (a || '').trim();
+    err.textContent = ''; input.removeAttribute('aria-invalid');
+    if (B.looksLikePrivkey(a)) {
+      input.value = ''; input.setAttribute('aria-invalid', 'true');
+      err.textContent = "That looks like a private key, not an address. It was cleared and not sent anywhere. Paste the poa1… address instead, and treat that key as exposed if you shared it.";
+      return;
+    }
+    if (!B.isAddress(a)) { input.setAttribute('aria-invalid', 'true'); err.textContent = 'Enter a poa1… address (poa1 + base58 of a 32-byte public key).'; return; }
+    if (a !== addr) { clearResult(); lastAt = 0; }
+    addr = a;
+    try { history.replaceState(null, '', '#' + a); } catch (e) { /* file:// or sandboxed */ }
+    refresh();
+  }
+
+  function renderWatch(w) {
+    var out = $('wout'); out.textContent = '';
+    var box = el('div', 'tx watchbox');
+    box.appendChild(el('div', 'dir', w.state === 'final' ? '✓' : w.state === 'notfound' || w.state === 'failed' ? '!' : '⏳'));
+    var main = el('div', 'main');
+    main.appendChild(el('div', 't1', w.amount ? fmt(w.amount) + ' · ' + short(w.from) + ' → ' + short(w.to) : w.id.slice(0, 16) + '…'));
+    var bits = [];
+    if (w.height != null) bits.push('block height ' + w.height);
+    if (w.checkpointHeight != null) bits.push('in checkpoint h' + w.checkpointHeight);
+    if (w.memo) bits.push(w.memo);
+    if (w.state === 'notfound') bits.push('The node has never seen this txid. If you just sent it, wait a few seconds; if it stays missing, it didn\'t land.');
+    main.appendChild(el('div', 't2', bits.join(' · ') || ' '));
+    box.appendChild(main);
+    var side = el('div', 'side');
+    side.appendChild(badgeFor(w.state === 'final' ? { state: 'final', via: w.checkpointHeight != null ? 'checkpoint' : 'attestations', height: w.checkpointHeight, atts: w.atts } :
+      w.state === 'pending' ? { state: 'pending', atts: w.atts || 0, need: B.K } : { state: w.state }));
+    box.appendChild(side);
+    out.appendChild(box);
+  }
+  async function pollWatch() {
+    clearTimeout(watchTimer);
+    if (!watchId) return;
+    if (navigator.onLine === false) { offlineNotice(); $('wout').textContent = ''; watchTimer = setTimeout(pollWatch, POLL_MS); return; }
+    try {
+      var w = await checker.watchTx(watchId);
+      renderWatch(w);
+      if (w.state !== 'final' && w.state !== 'failed' && !document.hidden) watchTimer = setTimeout(pollWatch, 10000);
+    } catch (e) {
+      $('w-err').textContent = e.kind === 'invalid' ? e.message : "Can't reach minepoa.com right now. Retrying.";
+      if (e.kind !== 'invalid') watchTimer = setTimeout(pollWatch, POLL_MS);
+    }
+  }
+
+  $('form').addEventListener('submit', function (ev) { ev.preventDefault(); start($('addr').value); });
+  $('addr').addEventListener('input', function () {
+    if (B.looksLikePrivkey(this.value)) start(this.value);
+  });
+  $('wform').addEventListener('submit', function (ev) {
+    ev.preventDefault();
+    var v = $('wtx').value.trim().toLowerCase(); $('w-err').textContent = '';
+    if (B.looksLikePrivkey(v)) { $('wtx').value = ''; $('w-err').textContent = 'That looks like a private key. It was cleared and not sent.'; return; }
+    if (!/^[0-9a-f]{64}$/.test(v)) { $('w-err').textContent = 'A txid is 64 hex characters.'; return; }
+    watchId = v; pollWatch();
+  });
+  $('refresh').addEventListener('click', function () { clearTimeout(timer); refresh(); });
+  $('pause').addEventListener('click', function () {
+    paused = !paused; this.textContent = paused ? 'Resume' : 'Pause'; this.setAttribute('aria-pressed', paused ? 'true' : 'false');
+    if (paused) clearTimeout(timer); else refresh();
+    tick();
+  });
+  document.addEventListener('visibilitychange', function () {
+    if (document.hidden) { clearTimeout(timer); clearTimeout(watchTimer); }
+    else { if (addr && !paused) refresh(); if (watchId) pollWatch(); }
+  });
+  window.addEventListener('offline', function () { offlineNotice(); clearResult(); lastAt = 0; tick(); });
+  window.addEventListener('online', function () { infoNotice(); if (addr) refresh(); if (watchId) pollWatch(); });
+
+  window.addEventListener('hashchange', function () {
+    var h = decodeURIComponent((location.hash || '').replace(/^#/, '')).trim();
+    if (h && h !== addr) { $('addr').value = h; start(h); }
+  });
+  ticker = setInterval(tick, 1000);
+  var initial = decodeURIComponent((location.hash || '').replace(/^#/, ''));
+  var q = /[?&]address=([^&#]+)/.exec(location.search); if (!initial && q) initial = decodeURIComponent(q[1]);
+  if (navigator.onLine === false) offlineNotice();
+  if (initial) { $('addr').value = initial; start(initial); }
+  document.documentElement.setAttribute('data-ready', 'true');
+})();
+</script>
+</body>
+</html>

@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-BQwO29OXq8IuC/C5I5o5rSs38jwuOoJ6yHbuTRpoiCA=' 'sha256-8JEMcTRhD0xBUfRrXrKXChCtTZZ9KKRbfb9vaiHMifc='; style-src 'sha256-WDBj5f47ZTw7FG93nuIM16p4saJsHrKoco5NRnVaLMA='; img-src data:; connect-src 'none'; font-src 'none'; media-src 'none'; object-src 'none'; frame-src 'none'; worker-src 'none'; manifest-src 'none'; form-action 'none'; base-uri 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-BQwO29OXq8IuC/C5I5o5rSs38jwuOoJ6yHbuTRpoiCA=' 'sha256-tswr/XUMfN/mLCCca3Bej2wMkMDSFet1HfnXrVPjNNY='; style-src 'sha256-qua34b8IXrJ3z3y8J3GaaIvIanjk2MxI8mqoeslgrAs='; img-src data:; connect-src 'none'; font-src 'none'; media-src 'none'; object-src 'none'; frame-src 'none'; worker-src 'none'; manifest-src 'none'; form-action 'none'; base-uri 'none'">
 <meta name="referrer" content="no-referrer">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="color-scheme" content="light dark">
@@ -57,6 +57,9 @@ h1{font-size:clamp(1.25rem,1rem + 1.6vw,1.8rem);line-height:1.2;margin:0}
 .btn.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
 .btn.copied{background:var(--ok-soft);color:var(--ok);border-color:var(--ok)}
 .btn.toggle{flex:none;min-width:92px}
+.check-row{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;margin-top:10px}
+.check-row .btn{flex:none;text-decoration:none}
+.check-row .hint{flex:1 1 240px}
 .actions{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:6px}
 .actions .btn{width:100%}
 .actions-2{display:flex;flex-wrap:wrap;gap:10px;margin-top:14px}
@@ -104,6 +107,10 @@ dialog p{margin:0 0 10px;color:var(--muted);font-size:.9rem}
         <span class="hint">poa1 + base58(public key)</span>
       </div>
       <output class="field address" id="address" aria-labelledby="addr-label" tabindex="0" data-testid="address"></output>
+      <div class="check-row">
+        <a class="btn" id="check-balance" href="check.html" target="_blank" rel="noopener noreferrer">Check live balance ↗</a>
+        <span class="hint">Opens the balance checker in a new tab. It needs an internet connection and sends only this public address to minepoa.com. Generating keys here stays offline.</span>
+      </div>
     </section>
 
     <section class="group" aria-labelledby="key-label">
@@ -141,6 +148,7 @@ dialog p{margin:0 0 10px;color:var(--muted);font-size:.9rem}
         <li><b>Private key</b> = base58 of the 32-byte seed (the <code>privkey</code> field of the official client's <code>wallet.json</code>). <b>Address</b> = <code>poa1</code> + base58 of the 32-byte public key.</li>
         <li>This is a self-custody key for the official <code>poa.mjs</code> client: save <b>Download wallet.json</b> into a folder and pass it with <code>--wallet</code>. It is not a hosted <code>pk_…</code> API key; a new address exists on the ledger only after it joins.</li>
         <li>The page's Content-Security-Policy forbids every network connection, image, font and frame load. For maximum safety, save this file and open it with your network turned off.</li>
+        <li><b>Check live balance</b> opens a separate page, <code>check.html</code>, which needs an internet connection. It is read-only, never sees your private key, and its own Content-Security-Policy allows requests to <code>https://minepoa.com</code> only. This page's policy is unchanged: it still blocks every connection.</li>
       </ul>
     </details>
   </section>
@@ -288,6 +296,8 @@ dialog p{margin:0 0 10px;color:var(--muted);font-size:.9rem}
   var addrEl = $('address'), keyEl = $('privkey'), revealBtn = $('reveal'), live = $('live'), hint = $('key-hint');
   var SHAPES = '●◆▲■', MASK_LEN = 24, AUTO_HIDE_MS = 30000;
   var current = null, revealed = false, hideTimer = 0;
+  // Saved copies opened from file:// have no check.html beside them, so link to the hosted checker.
+  var CHECK_PAGE = location.protocol === 'file:' ? 'https://maximusmaximus.github.io/poa-keygen/check.html' : 'check.html';
 
   function maskText() { var s = ''; for (var i = 0; i < MASK_LEN; i++) s += SHAPES[i % SHAPES.length]; return s; }
   function announce(msg) { live.textContent = ''; setTimeout(function () { live.textContent = msg; }, 30); }
@@ -320,6 +330,8 @@ dialog p{margin:0 0 10px;color:var(--muted);font-size:.9rem}
     current = core.generate(window.crypto);
     current.created = Math.floor(Date.now() / 1000);
     addrEl.textContent = current.address;
+    // The public address rides in the URL fragment, which browsers never send to a server.
+    $('check-balance').setAttribute('href', CHECK_PAGE + '#' + current.address);
     setRevealed(false);
   }
 
