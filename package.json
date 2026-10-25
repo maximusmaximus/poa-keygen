@@ -1,0 +1,17 @@
+{
+  "name": "poa-keygen",
+  "version": "1.0.0",
+  "description": "Offline Proof of Agent (PoA) ed25519 key pair generator: one static HTML file, no network.",
+  "scripts": {
+    "test": "npm run test:unit && npm run test:e2e",
+    "test:unit": "node scripts/csp.mjs --check && node --test tests/unit/",
+    "test:e2e": "playwright test",
+    "csp": "node scripts/csp.mjs"
+  },
+  "license": "MIT",
+  "type": "module",
+  "devDependencies": {
+    "@playwright/test": "1.56.1"
+  },
+  "private": true
+}

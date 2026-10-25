@@ -1,0 +1,65 @@
+{
+  "_note": "THROWAWAY TEST VECTORS ONLY. Generated with `node poa.mjs init-wallet` from https://minepoa.com/client/poa.mjs (PoA client v0.4) on 2026-10-25. These keys were never registered or funded. Never use them.",
+  "vectors": [
+    {
+      "privkey": "Hma1Xd11hAUQk1wnk3nFZqqNX39t4AigABCQNEpWS7Nj",
+      "pubkey": "4ahXGjPAoiJ85rQRsmwrFCQiTDRUB8BcHosmahi8gW2Z",
+      "address": "poa14ahXGjPAoiJ85rQRsmwrFCQiTDRUB8BcHosmahi8gW2Z"
+    },
+    {
+      "privkey": "82Gj2xDvNyg4sTszLtFpSRyiKza4UqUDdc46scxNcTc",
+      "pubkey": "DeBGFNiikTjdVDiWegMVe4Tmi2UKYzBEHzQLyxg5hBNf",
+      "address": "poa1DeBGFNiikTjdVDiWegMVe4Tmi2UKYzBEHzQLyxg5hBNf"
+    },
+    {
+      "privkey": "DishhPu5y84VY3PHesgpYJex42WxeeEupFfQFs65pj4y",
+      "pubkey": "3B97e7dySMk7hzhRYmAq8ioDYtnz1woTLihbX2vDCqjH",
+      "address": "poa13B97e7dySMk7hzhRYmAq8ioDYtnz1woTLihbX2vDCqjH"
+    },
+    {
+      "privkey": "AhK5vd3qZLan56dbgL9TdNi4LwpNsCapkhNrteP4wffR",
+      "pubkey": "HaqRLpDUGjbQwz3XafW6scARysudXwJh64JEJXbzbbww",
+      "address": "poa1HaqRLpDUGjbQwz3XafW6scARysudXwJh64JEJXbzbbww"
+    },
+    {
+      "privkey": "BtRbmrtnc3icwbu4ze2RJeyP9Heubj7pzohNc2WiKXob",
+      "pubkey": "5ZroHxFCdVghQW8Hy3WHnPJapvndcUiX6WkV6dL4UNFv",
+      "address": "poa15ZroHxFCdVghQW8Hy3WHnPJapvndcUiX6WkV6dL4UNFv"
+    },
+    {
+      "privkey": "DzveCo2hskDPymtdv5h4y6BfVKPs15zXzeXtRBy1N8oa",
+      "pubkey": "8aB53mcZodETMeCK8MeSJNKpxh71WcmVSrze7MWzcSRN",
+      "address": "poa18aB53mcZodETMeCK8MeSJNKpxh71WcmVSrze7MWzcSRN"
+    },
+    {
+      "privkey": "DVTrMuMenvHbKCu9Xv49whHQHy9nbJkcBDDkz6UaV47a",
+      "pubkey": "4fhPz5WtjZskdkBSiPB37dy2GpRkbnUooQkVp7WPurqs",
+      "address": "poa14fhPz5WtjZskdkBSiPB37dy2GpRkbnUooQkVp7WPurqs"
+    },
+    {
+      "privkey": "pSWzQKzUYP4tQVsBKFNj1QS349wJxwZZLJU8ckgh94p",
+      "pubkey": "Bs77JgSkru5NFn9YBJ8wG1FQAJNgxv8157XeQmUFG732",
+      "address": "poa1Bs77JgSkru5NFn9YBJ8wG1FQAJNgxv8157XeQmUFG732"
+    },
+    {
+      "privkey": "78JJFqZXHdsXkABQibtNZroqeZxRTxkKphRUvmpJmGf3",
+      "pubkey": "HNRtAFCodhRn9D9BuFbUjzJtSyDiaehZ9RryiNhzcx5C",
+      "address": "poa1HNRtAFCodhRn9D9BuFbUjzJtSyDiaehZ9RryiNhzcx5C"
+    },
+    {
+      "privkey": "ARoTWgfUJREf3JWH6t3y9BU9FCiCzvchXpqGLXHxpycB",
+      "pubkey": "2ZP6sZS5TaakgSmWpJCzN6xXrXGXP9ytqFwRtnyQikX9",
+      "address": "poa12ZP6sZS5TaakgSmWpJCzN6xXrXGXP9ytqFwRtnyQikX9"
+    },
+    {
+      "privkey": "4VEpfC8d9QK28qMvCf67xDSPNgbU3AtZgpwm65Bcf39t",
+      "pubkey": "6oiJiie5zLcLvH3mpXrVYcDR6qZSnUd1z21Bq51VjGDc",
+      "address": "poa16oiJiie5zLcLvH3mpXrVYcDR6qZSnUd1z21Bq51VjGDc"
+    },
+    {
+      "privkey": "5zfR2MgZogdtUFXJiwTsZD448nkJSHivWDgKPUNmxFcs",
+      "pubkey": "6osFau7EqjDosiXbszpvVUrpBJKWyeAC2H1jzFkfm7B1",
+      "address": "poa16osFau7EqjDosiXbszpvVUrpBJKWyeAC2H1jzFkfm7B1"
+    }
+  ]
+}

@@ -1,0 +1,398 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-BQwO29OXq8IuC/C5I5o5rSs38jwuOoJ6yHbuTRpoiCA=' 'sha256-8JEMcTRhD0xBUfRrXrKXChCtTZZ9KKRbfb9vaiHMifc='; style-src 'sha256-WDBj5f47ZTw7FG93nuIM16p4saJsHrKoco5NRnVaLMA='; img-src data:; connect-src 'none'; font-src 'none'; media-src 'none'; object-src 'none'; frame-src 'none'; worker-src 'none'; manifest-src 'none'; form-action 'none'; base-uri 'none'">
+<meta name="referrer" content="no-referrer">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
+<meta name="description" content="Offline Proof of Agent (PoA) ed25519 key pair generator. Makes no network requests.">
+<title>PoA Key Generator (offline)</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cpath d='M16 2 30 26H2z' fill='%237c5cff'/%3E%3C/svg%3E">
+<style>
+:root{
+  --bg:#f4f5fb;--bg2:#e9ebf7;--card:#ffffff;--ink:#14162b;--muted:#565b7a;--line:#d6d9ea;
+  --accent:#5b3df5;--accent-ink:#ffffff;--accent-soft:#ece8ff;--ok:#0f7b4a;--ok-soft:#e3f6ec;
+  --warn:#8a4b00;--warn-soft:#fff3dd;--field:#f7f8fd;--shadow:0 10px 30px rgba(20,22,43,.08);
+  --radius:16px;--mono:ui-monospace,SFMono-Regular,Menlo,Consolas,"Liberation Mono",monospace;
+  --sans:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+}
+@media (prefers-color-scheme:dark){:root{
+  --bg:#0d0e1a;--bg2:#141629;--card:#171a30;--ink:#eef0ff;--muted:#a3a8c9;--line:#2b2f52;
+  --accent:#8f7bff;--accent-ink:#0d0e1a;--accent-soft:#25214a;--ok:#5be3a0;--ok-soft:#10301f;
+  --warn:#ffc46b;--warn-soft:#33260f;--field:#10122a;--shadow:0 10px 30px rgba(0,0,0,.35);
+}}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
+body{margin:0;min-height:100vh;font-family:var(--sans);color:var(--ink);line-height:1.5;
+  background:radial-gradient(1200px 600px at 10% -10%,var(--accent-soft),transparent 60%),linear-gradient(var(--bg),var(--bg2));
+  padding:max(16px,env(safe-area-inset-top)) max(16px,env(safe-area-inset-right)) max(24px,env(safe-area-inset-bottom)) max(16px,env(safe-area-inset-left))}
+.wrap{max-width:760px;margin:0 auto}
+header{display:flex;align-items:center;gap:12px;margin:8px 0 18px}
+.logo{flex:none;width:40px;height:40px;border-radius:12px;background:var(--accent);display:grid;place-items:center;color:var(--accent-ink);font-size:20px}
+h1{font-size:clamp(1.25rem,1rem + 1.6vw,1.8rem);line-height:1.2;margin:0}
+.sub{margin:2px 0 0;color:var(--muted);font-size:.95rem}
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:clamp(16px,3vw,28px);margin-bottom:16px}
+.status{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:18px}
+.pill{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:4px 12px;font-size:.85rem;font-weight:600;border:1px solid var(--line);background:var(--field)}
+.pill.ok{color:var(--ok);background:var(--ok-soft);border-color:transparent}
+.pill.warn{color:var(--warn);background:var(--warn-soft);border-color:transparent}
+.group{margin:0 0 18px}
+.label-row{display:flex;align-items:baseline;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-bottom:6px}
+.label{font-weight:700;font-size:.95rem}
+.hint{color:var(--muted);font-size:.82rem}
+.field{display:block;width:100%;min-height:52px;padding:13px 14px;border:1px solid var(--line);border-radius:12px;background:var(--field);
+  font-family:var(--mono);font-size:clamp(.82rem,.75rem + .35vw,1rem);line-height:1.45;overflow-wrap:anywhere;word-break:break-all;color:var(--ink)}
+.field.address{user-select:all;-webkit-user-select:all}
+.key-row{display:flex;gap:8px;align-items:stretch}
+.key-row .field{flex:1;min-width:0}
+.field.masked{letter-spacing:.18em;font-size:clamp(.95rem,.85rem + .4vw,1.15rem);line-height:1.35;color:var(--accent);user-select:none;-webkit-user-select:none;word-break:break-all}
+.field.revealed{user-select:all;-webkit-user-select:all}
+.btn{appearance:none;font:inherit;font-weight:650;font-size:.95rem;min-height:44px;padding:10px 16px;border-radius:12px;cursor:pointer;
+  border:1px solid var(--line);background:var(--card);color:var(--ink);display:inline-flex;align-items:center;justify-content:center;gap:8px;
+  transition:transform .08s ease,background-color .15s ease,border-color .15s ease}
+.btn:hover{border-color:var(--accent)}
+.btn:active{transform:translateY(1px)}
+.btn:focus-visible,.field:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.btn.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.btn.copied{background:var(--ok-soft);color:var(--ok);border-color:var(--ok)}
+.btn.toggle{flex:none;min-width:92px}
+.actions{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:6px}
+.actions .btn{width:100%}
+.actions-2{display:flex;flex-wrap:wrap;gap:10px;margin-top:14px}
+.actions-2 .btn{flex:1 1 200px}
+.warning{border-left:4px solid var(--warn);background:var(--warn-soft);color:var(--ink);border-radius:12px;padding:12px 14px;font-size:.92rem;margin:0}
+.warning strong{color:var(--warn)}
+details{font-size:.92rem;color:var(--muted)}
+summary{cursor:pointer;font-weight:650;color:var(--ink);min-height:32px}
+details ul{padding-left:20px;margin:8px 0 0}
+code{font-family:var(--mono);font-size:.9em;overflow-wrap:anywhere}
+footer{color:var(--muted);font-size:.8rem;text-align:center;margin-top:8px}
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+.offscreen{position:fixed;top:0;left:-9999px;width:1px;height:1px;opacity:0}
+dialog{border:1px solid var(--line);border-radius:var(--radius);background:var(--card);color:var(--ink);width:min(560px,calc(100vw - 32px));padding:20px;box-shadow:var(--shadow)}
+dialog::backdrop{background:rgba(10,10,25,.55)}
+dialog textarea{width:100%;min-height:110px;font-family:var(--mono);font-size:.9rem;padding:10px;border-radius:10px;border:1px solid var(--line);background:var(--field);color:var(--ink);resize:vertical}
+dialog h2{margin:0 0 6px;font-size:1.1rem}
+dialog p{margin:0 0 10px;color:var(--muted);font-size:.9rem}
+.dialog-actions{display:flex;justify-content:flex-end;margin-top:12px}
+@media (max-width:560px){.actions{grid-template-columns:1fr}}
+@media (max-width:380px){.key-row{flex-direction:column}.btn.toggle{width:100%}}
+@media (max-height:500px) and (orientation:landscape){header{margin:0 0 10px}.status{margin-bottom:10px}}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="logo" aria-hidden="true">▲</div>
+    <div>
+      <h1>PoA Key Generator</h1>
+      <p class="sub">Proof of Agent (minepoa.com) ed25519 key pairs, made entirely on this device.</p>
+    </div>
+  </header>
+
+  <main class="card" id="main">
+    <div class="status" role="status" aria-live="polite">
+      <span class="pill ok" id="pill-net" title="Content-Security-Policy: default-src 'none'; connect-src 'none'">✓ Network blocked by this page</span>
+      <span class="pill" id="pill-online" data-online="unknown">Checking connection…</span>
+    </div>
+
+    <section class="group" aria-labelledby="addr-label">
+      <div class="label-row">
+        <span class="label" id="addr-label">Address (public, safe to share)</span>
+        <span class="hint">poa1 + base58(public key)</span>
+      </div>
+      <output class="field address" id="address" aria-labelledby="addr-label" tabindex="0" data-testid="address"></output>
+    </section>
+
+    <section class="group" aria-labelledby="key-label">
+      <div class="label-row">
+        <span class="label" id="key-label">Private key (secret)</span>
+        <span class="hint" id="key-hint">Hidden. Auto-hides after 30 s or when you leave this tab.</span>
+      </div>
+      <div class="key-row">
+        <output class="field masked" id="privkey" aria-labelledby="key-label" aria-describedby="key-hint" tabindex="0" data-testid="privkey"></output>
+        <button type="button" class="btn toggle" id="reveal" aria-pressed="false" aria-controls="privkey">Show</button>
+      </div>
+    </section>
+
+    <div class="actions">
+      <button type="button" class="btn" id="copy-address" data-default="Copy address">Copy address</button>
+      <button type="button" class="btn" id="copy-key" data-default="Copy private key">Copy private key</button>
+      <button type="button" class="btn" id="copy-both" data-default="Copy both">Copy both</button>
+    </div>
+    <div class="actions-2">
+      <button type="button" class="btn primary" id="generate">Generate new pair</button>
+      <button type="button" class="btn" id="download" data-default="Download wallet.json">Download wallet.json</button>
+    </div>
+    <p class="sr-only" id="live" role="status" aria-live="polite"></p>
+  </main>
+
+  <section class="card" aria-label="Safety">
+    <p class="warning"><strong>Keep the private key offline.</strong> Anyone who has it controls the account and everything in it, and it cannot be reset. Save it in a password manager or on paper, never paste it into a chat, a website, or an AI prompt, and clear your clipboard after copying it. Generating a new pair does not recover an old one.</p>
+  </section>
+
+  <section class="card">
+    <details>
+      <summary>How this works and how to use the key</summary>
+      <ul>
+        <li>Each pair is a random 32-byte ed25519 seed from <code>crypto.getRandomValues</code>. The public key is derived here, in plain JavaScript inside this file.</li>
+        <li><b>Private key</b> = base58 of the 32-byte seed (the <code>privkey</code> field of the official client's <code>wallet.json</code>). <b>Address</b> = <code>poa1</code> + base58 of the 32-byte public key.</li>
+        <li>This is a self-custody key for the official <code>poa.mjs</code> client: save <b>Download wallet.json</b> into a folder and pass it with <code>--wallet</code>. It is not a hosted <code>pk_…</code> API key; a new address exists on the ledger only after it joins.</li>
+        <li>The page's Content-Security-Policy forbids every network connection, image, font and frame load. For maximum safety, save this file and open it with your network turned off.</li>
+      </ul>
+    </details>
+  </section>
+  <footer>Tessellate Army · open source · works from <code>file://</code> and offline</footer>
+</div>
+
+<dialog id="manual" aria-labelledby="manual-title">
+  <h2 id="manual-title">Copy manually</h2>
+  <p>Your browser blocked clipboard access. The text is selected: press Ctrl+C (⌘C on Mac), then close.</p>
+  <textarea id="manual-text" readonly spellcheck="false" autocomplete="off" aria-labelledby="manual-title"></textarea>
+  <div class="dialog-actions"><button type="button" class="btn primary" id="manual-close">Close</button></div>
+</dialog>
+
+<script id="poa-core">
+/* PoA key derivation core: SHA-512, ed25519 public key from seed, base58 (Bitcoin alphabet).
+   Pure JavaScript, no dependencies, no I/O. Mirrors genKeypair/addrOf/b58enc in minepoa.com/client/poa.mjs. */
+(function (root) {
+  'use strict';
+  var M64 = (1n << 64n) - 1n;
+  var PRIMES = [];
+  for (var n = 2; PRIMES.length < 80; n++) { var isP = true; for (var i = 0; i < PRIMES.length && PRIMES[i] * PRIMES[i] <= n; i++) if (n % PRIMES[i] === 0) { isP = false; break; } if (isP) PRIMES.push(n); }
+  function iroot(x, k) { // floor(x^(1/k)) for BigInt x, Newton's method
+    var kb = BigInt(k), r = 1n << BigInt(Math.ceil(x.toString(2).length / k) + 1);
+    while (true) { var nx = ((kb - 1n) * r + x / (r ** (kb - 1n))) / kb; if (nx >= r) return r; r = nx; }
+  }
+  // SHA-512 constants derived per FIPS 180-4 (fractional parts of square / cube roots of primes)
+  var H0 = PRIMES.slice(0, 8).map(function (p) { return iroot(BigInt(p) << 128n, 2) & M64; });
+  var K = PRIMES.map(function (p) { return iroot(BigInt(p) << 192n, 3) & M64; });
+  function rotr(x, s) { return ((x >> s) | (x << (64n - s))) & M64; }
+  function sha512(msg) {
+    var len = msg.length, padLen = ((len + 17 + 127) >> 7) << 7, buf = new Uint8Array(padLen);
+    buf.set(msg); buf[len] = 0x80;
+    var bits = BigInt(len) * 8n;
+    for (var b = 0; b < 16; b++) buf[padLen - 1 - b] = Number((bits >> BigInt(8 * b)) & 0xffn);
+    var h = H0.slice(), w = new Array(80);
+    for (var off = 0; off < padLen; off += 128) {
+      for (var t = 0; t < 16; t++) { var v = 0n; for (var j = 0; j < 8; j++) v = (v << 8n) | BigInt(buf[off + t * 8 + j]); w[t] = v; }
+      for (t = 16; t < 80; t++) {
+        var s0 = rotr(w[t - 15], 1n) ^ rotr(w[t - 15], 8n) ^ (w[t - 15] >> 7n);
+        var s1 = rotr(w[t - 2], 19n) ^ rotr(w[t - 2], 61n) ^ (w[t - 2] >> 6n);
+        w[t] = (w[t - 16] + s0 + w[t - 7] + s1) & M64;
+      }
+      var a = h[0], bb = h[1], c = h[2], d = h[3], e = h[4], f = h[5], g = h[6], hh = h[7];
+      for (t = 0; t < 80; t++) {
+        var S1 = rotr(e, 14n) ^ rotr(e, 18n) ^ rotr(e, 41n), ch = (e & f) ^ (~e & M64 & g);
+        var T1 = (hh + S1 + ch + K[t] + w[t]) & M64;
+        var S0 = rotr(a, 28n) ^ rotr(a, 34n) ^ rotr(a, 39n), maj = (a & bb) ^ (a & c) ^ (bb & c);
+        var T2 = (S0 + maj) & M64;
+        hh = g; g = f; f = e; e = (d + T1) & M64; d = c; c = bb; bb = a; a = (T1 + T2) & M64;
+      }
+      h[0] = (h[0] + a) & M64; h[1] = (h[1] + bb) & M64; h[2] = (h[2] + c) & M64; h[3] = (h[3] + d) & M64;
+      h[4] = (h[4] + e) & M64; h[5] = (h[5] + f) & M64; h[6] = (h[6] + g) & M64; h[7] = (h[7] + hh) & M64;
+    }
+    var out = new Uint8Array(64);
+    for (i = 0; i < 8; i++) for (j = 0; j < 8; j++) out[i * 8 + j] = Number((h[i] >> BigInt(56 - 8 * j)) & 0xffn);
+    return out;
+  }
+  // ed25519 (RFC 8032) over GF(2^255 - 19), twisted Edwards a = -1, extended coordinates
+  var P = (1n << 255n) - 19n;
+  function mod(a) { var r = a % P; return r < 0n ? r + P : r; }
+  function pow(b, e) { var r = 1n; b = mod(b); while (e > 0n) { if (e & 1n) r = r * b % P; b = b * b % P; e >>= 1n; } return r; }
+  function inv(a) { return pow(a, P - 2n); }
+  var D = mod(-121665n * inv(121666n)), D2 = mod(2n * D), SQRTM1 = pow(2n, (P - 1n) / 4n);
+  var GY = mod(4n * inv(5n));
+  var GX = (function () {
+    var y2 = GY * GY % P, x2 = mod((y2 - 1n) * inv(D * y2 + 1n)), x = pow(x2, (P + 3n) / 8n);
+    if (mod(x * x - x2) !== 0n) x = x * SQRTM1 % P;
+    if (x & 1n) x = P - x;
+    return x;
+  })();
+  var G = [GX, GY, 1n, GX * GY % P];
+  function add(p1, p2) {
+    var A = mod((p1[1] - p1[0]) * (p2[1] - p2[0])), B = mod((p1[1] + p1[0]) * (p2[1] + p2[0]));
+    var C = mod(p1[3] * D2 * p2[3]), Dd = mod(p1[2] * 2n * p2[2]);
+    var E = B - A, F = Dd - C, Gg = Dd + C, H = B + A;
+    return [mod(E * F), mod(Gg * H), mod(F * Gg), mod(E * H)];
+  }
+  function scalarMult(k, pt) {
+    var r = [0n, 1n, 1n, 0n], q = pt;
+    while (k > 0n) { if (k & 1n) r = add(r, q); q = add(q, q); k >>= 1n; }
+    return r;
+  }
+  function pubFromSeed(seed) {
+    if (!(seed instanceof Uint8Array) || seed.length !== 32) throw new Error('seed must be 32 bytes');
+    var h = sha512(seed), a = 0n;
+    h[0] &= 248; h[31] &= 127; h[31] |= 64;
+    for (var i = 31; i >= 0; i--) a = (a << 8n) | BigInt(h[i]);
+    h.fill(0);
+    var pt = scalarMult(a, G), zi = inv(pt[2]), x = pt[0] * zi % P, y = pt[1] * zi % P;
+    var out = new Uint8Array(32);
+    for (i = 0; i < 32; i++) { out[i] = Number(y & 0xffn); y >>= 8n; }
+    if (x & 1n) out[31] |= 0x80;
+    return out;
+  }
+  // base58, identical to poa.mjs b58enc / b58dec
+  var B58 = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz';
+  function b58enc(buf) {
+    var n = 0n, s = '', i;
+    for (i = 0; i < buf.length; i++) n = n * 256n + BigInt(buf[i]);
+    while (n > 0n) { s = B58[Number(n % 58n)] + s; n /= 58n; }
+    for (i = 0; i < buf.length && buf[i] === 0; i++) s = '1' + s;
+    return s || '1';
+  }
+  function b58dec(s) {
+    var n = 0n, i, zeros = 0, bytes = [];
+    for (i = 0; i < s.length; i++) { var x = B58.indexOf(s[i]); if (x < 0) throw new Error('bad base58 char'); n = n * 58n + BigInt(x); }
+    while (n > 0n) { bytes.unshift(Number(n & 0xffn)); n >>= 8n; }
+    for (i = 0; i < s.length && s[i] === '1'; i++) zeros++;
+    return new Uint8Array(new Array(zeros).fill(0).concat(bytes));
+  }
+  function addrOf(pub) { return 'poa1' + b58enc(pub); }
+  function pubOfAddr(addr) {
+    if (typeof addr !== 'string' || addr.indexOf('poa1') !== 0) throw new Error('bad address');
+    var raw = b58dec(addr.slice(4));
+    if (raw.length !== 32) throw new Error('bad address length');
+    return raw;
+  }
+  function pairFromSeed(seed) {
+    var pub = pubFromSeed(seed);
+    return { address: addrOf(pub), pubkey: b58enc(pub), privkey: b58enc(seed) };
+  }
+  function fromPrivkey(privB58) {
+    var seed = b58dec(String(privB58).trim());
+    if (seed.length !== 32) throw new Error('private key must decode to 32 bytes');
+    var pair = pairFromSeed(seed); seed.fill(0); return pair;
+  }
+  function generate(cryptoObj) {
+    var c = cryptoObj || root.crypto;
+    if (!c || typeof c.getRandomValues !== 'function') throw new Error('crypto.getRandomValues is unavailable');
+    var seed = new Uint8Array(32);
+    c.getRandomValues(seed);
+    var pair = pairFromSeed(seed);
+    seed.fill(0);
+    return pair;
+  }
+  root.PoaKeygen = Object.freeze({ sha512: sha512, pubFromSeed: pubFromSeed, b58enc: b58enc, b58dec: b58dec,
+    addrOf: addrOf, pubOfAddr: pubOfAddr, pairFromSeed: pairFromSeed, fromPrivkey: fromPrivkey, generate: generate });
+})(typeof globalThis !== 'undefined' ? globalThis : this);
+</script>
+<script id="poa-ui">
+(function () {
+  'use strict';
+  var core = window.PoaKeygen;
+  var $ = function (id) { return document.getElementById(id); };
+  var addrEl = $('address'), keyEl = $('privkey'), revealBtn = $('reveal'), live = $('live'), hint = $('key-hint');
+  var SHAPES = '●◆▲■', MASK_LEN = 24, AUTO_HIDE_MS = 30000;
+  var current = null, revealed = false, hideTimer = 0;
+
+  function maskText() { var s = ''; for (var i = 0; i < MASK_LEN; i++) s += SHAPES[i % SHAPES.length]; return s; }
+  function announce(msg) { live.textContent = ''; setTimeout(function () { live.textContent = msg; }, 30); }
+
+  function renderKey() {
+    keyEl.textContent = '';
+    if (revealed && current) {
+      keyEl.textContent = current.privkey;
+      keyEl.className = 'field revealed';
+      revealBtn.textContent = 'Hide';
+      hint.textContent = 'Visible. Hides in 30 s or when you leave this tab.';
+    } else {
+      var shapes = document.createElement('span'); shapes.setAttribute('aria-hidden', 'true'); shapes.textContent = maskText();
+      var sr = document.createElement('span'); sr.className = 'sr-only'; sr.textContent = 'Hidden';
+      keyEl.appendChild(shapes); keyEl.appendChild(sr);
+      keyEl.className = 'field masked';
+      revealBtn.textContent = 'Show';
+      hint.textContent = 'Hidden. Auto-hides after 30 s or when you leave this tab.';
+    }
+    revealBtn.setAttribute('aria-pressed', revealed ? 'true' : 'false');
+    revealBtn.setAttribute('aria-label', revealed ? 'Hide private key' : 'Show private key');
+  }
+  function setRevealed(on) {
+    revealed = !!on;
+    clearTimeout(hideTimer);
+    if (revealed) hideTimer = setTimeout(function () { setRevealed(false); }, AUTO_HIDE_MS);
+    renderKey();
+  }
+  function generate() {
+    current = core.generate(window.crypto);
+    current.created = Math.floor(Date.now() / 1000);
+    addrEl.textContent = current.address;
+    setRevealed(false);
+  }
+
+  function legacyCopy(text) {
+    var ta = document.createElement('textarea');
+    ta.value = text; ta.setAttribute('readonly', ''); ta.className = 'offscreen';
+    document.body.appendChild(ta); ta.select();
+    var ok = false;
+    try { ok = document.execCommand('copy'); } catch (e) { ok = false; }
+    ta.value = ''; document.body.removeChild(ta);
+    return ok;
+  }
+  function manualCopy(text) {
+    var dlg = $('manual'), ta = $('manual-text');
+    ta.value = text;
+    if (typeof dlg.showModal === 'function') dlg.showModal(); else dlg.setAttribute('open', '');
+    ta.focus(); ta.select();
+  }
+  function closeManual() {
+    var dlg = $('manual'); $('manual-text').value = '';
+    if (dlg.open) { if (typeof dlg.close === 'function') dlg.close(); else dlg.removeAttribute('open'); }
+  }
+  function flash(btn, label) {
+    btn.classList.add('copied'); btn.textContent = '✓ ' + label;
+    clearTimeout(btn._t);
+    btn._t = setTimeout(function () { btn.classList.remove('copied'); btn.textContent = btn.getAttribute('data-default'); }, 1800);
+  }
+  function copy(text, btn, what) {
+    var done = function () { flash(btn, 'Copied'); announce(what + ' copied to clipboard.'); };
+    var fallback = function () {
+      if (legacyCopy(text)) done();
+      else { manualCopy(text); announce('Clipboard unavailable. Copy the selected text manually.'); }
+    };
+    if (navigator.clipboard && typeof navigator.clipboard.writeText === 'function' && window.isSecureContext !== false) {
+      navigator.clipboard.writeText(text).then(done, fallback);
+    } else fallback();
+  }
+  function bothText() { return 'PoA address: ' + current.address + '\nPoA private key: ' + current.privkey; }
+
+  function download(btn) {
+    var wallet = { version: 1, address: current.address, pubkey: current.pubkey, privkey: current.privkey, created: current.created, invited_by: null };
+    var blob = new Blob([JSON.stringify(wallet, null, 2) + '\n'], { type: 'application/json' });
+    var url = URL.createObjectURL(blob), a = document.createElement('a');
+    a.href = url; a.download = 'wallet.json'; a.rel = 'noopener'; a.className = 'offscreen';
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
+    flash(btn, 'Saved'); announce('wallet.json saved. Keep it offline.');
+  }
+
+  function updateOnline() {
+    var pill = $('pill-online'), on = navigator.onLine;
+    pill.dataset.online = on ? 'online' : 'offline';
+    pill.className = 'pill ' + (on ? 'warn' : 'ok');
+    pill.textContent = on ? 'Device is online: for best safety, disconnect first' : '✓ Device is offline';
+  }
+
+  revealBtn.addEventListener('click', function () { setRevealed(!revealed); });
+  $('copy-address').addEventListener('click', function () { copy(current.address, this, 'Address'); });
+  $('copy-key').addEventListener('click', function () { copy(current.privkey, this, 'Private key'); });
+  $('copy-both').addEventListener('click', function () { copy(bothText(), this, 'Address and private key'); });
+  $('generate').addEventListener('click', function () { generate(); announce('New key pair generated. Private key is hidden.'); });
+  $('download').addEventListener('click', function () { download(this); });
+  $('manual-close').addEventListener('click', closeManual);
+  $('manual').addEventListener('close', function () { $('manual-text').value = ''; });
+  document.addEventListener('visibilitychange', function () { if (document.hidden) { setRevealed(false); closeManual(); } });
+  window.addEventListener('pagehide', function () { setRevealed(false); closeManual(); });
+  window.addEventListener('online', updateOnline);
+  window.addEventListener('offline', updateOnline);
+
+  updateOnline();
+  generate();
+  document.documentElement.setAttribute('data-ready', 'true');
+})();
+</script>
+</body>
+</html>
